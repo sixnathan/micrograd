@@ -11,8 +11,8 @@ class Value :
         out = Value ( self.data + other.data, (self, other ) , '+' ) 
 
         def _backward () : 
-            self.grad = out.grad 
-            other.grad = out.grad 
+            self.grad += out.grad 
+            other.grad += out.grad 
 
         out._backward = _backward 
 
@@ -23,8 +23,8 @@ class Value :
         out = Value ( self.data * other.data , (self, other ) , '*' ) 
 
         def _backward () : 
-            self.grad = out.grad * other.grad 
-            other.grad = out.grad * self.grad 
+            self.grad += out.grad * other.grad 
+            other.grad += out.grad * self.grad 
 
         out._backward   = _backward 
 
@@ -32,7 +32,44 @@ class Value :
 
     def __pow__ (self, other ) : 
         assert isinstance ( other, (int, float ) )  
-        out = self ** other  
+        out = Value ( self ** other, (self, other ) , '**' )   
 
         def _backward () : 
-            
+           self.grad += other * self.data ** ( other - 1 ) 
+
+        out._backward = _backward 
+
+        return out 
+    
+    def relu ( self ) : 
+        out = Value ( max (0, self.data ), (self, ), 'relu' ) 
+        
+        def _backward () : 
+            if out.data > 0 : 
+                self.grad = out.grad 
+        out._backward = _backward 
+
+        return out 
+
+    def backward (self ) : 
+        topo = [] 
+        visited = set () 
+        def buildtop ( v ) : 
+            if v not in visited : 
+                visited.add ( v ) 
+                for child in v._prev : 
+                    buildtop (child ) 
+                topo.append ( v ) 
+
+        self.grad = 1 
+        for v in reversed ( topo ) : 
+            v._backward () 
+         
+
+
+
+
+
+
+
+
