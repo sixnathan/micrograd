@@ -23,8 +23,8 @@ class Value :
         out = Value ( self.data * other.data , (self, other ) , '*' ) 
 
         def _backward () : 
-            self.grad += out.grad * other.grad 
-            other.grad += out.grad * self.grad 
+            self.grad += out.grad * other.data 
+            other.grad += out.grad * self.data 
 
         out._backward   = _backward 
 
@@ -32,10 +32,10 @@ class Value :
 
     def __pow__ (self, other ) : 
         assert isinstance ( other, (int, float ) )  
-        out = Value ( self ** other, (self, other ) , '**' )   
+        out = Value ( self.data ** other , (self,) , '**' )   
 
         def _backward () : 
-           self.grad += other * self.data ** ( other - 1 ) 
+           self.grad += out.grad * other * self.data ** ( other - 1 ) 
 
         out._backward = _backward 
 
@@ -46,7 +46,7 @@ class Value :
         
         def _backward () : 
             if out.data > 0 : 
-                self.grad = out.grad 
+                self.grad += out.grad 
         out._backward = _backward 
 
         return out 
@@ -60,7 +60,7 @@ class Value :
                 for child in v._prev : 
                     buildtop (child ) 
                 topo.append ( v ) 
-
+        buildtop ( self ) 
         self.grad = 1 
         for v in reversed ( topo ) : 
             v._backward () 
